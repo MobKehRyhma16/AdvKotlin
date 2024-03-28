@@ -1,16 +1,19 @@
 package com.example.composedatetimepicker
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
+import androidx.compose.material.Card
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.composedatetimepicker.ui.theme.ComposeDateTimePickerTheme
 import com.vanpra.composematerialdialogs.MaterialDialog
@@ -21,9 +24,11 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             var isDateTimeSelected by remember { mutableStateOf(false) }
             var isReminderSet by remember { mutableStateOf(false) }
@@ -54,6 +59,8 @@ class MainActivity : ComponentActivity() {
                 val timeDialogState = rememberMaterialDialogState()
                 val reminderDialogState = rememberMaterialDialogState()
 
+                val alarms = remember { mutableStateListOf<String>() } // List to store alarms
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -78,7 +85,6 @@ class MainActivity : ComponentActivity() {
                         }
                         Text(text = formattedTime)
                     }
-
 
                     if (isDateTimeSelected) {
                         Button(
@@ -143,20 +149,24 @@ class MainActivity : ComponentActivity() {
                     buttons = {
                         positiveButton(text = "Set Reminder") {
                             isReminderSet = true
-                            // Add reminder logic here
+                            val newAlarm = "$formattedDate at $formattedTime" // Create new alarm string
+                            alarms.add(newAlarm) // Add alarm to the list
+                            isDateTimeSelected = false // Reset flag
                         }
 
                         negativeButton(text = "Cancel") {
                             isReminderSet = false
+                            isDateTimeSelected = false // Reset flag
                         }
                     }
                 ) {
                     // Add content for reminder dialog here
                     Text(text = "Set reminder content")
                 }
+
+                //Alarm cards
+                AlarmList(alarms = alarms)
             }
         }
     }
 }
-
-
