@@ -16,6 +16,7 @@ import androidx.compose.material.Button
 import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
+import androidx.compose.material.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +46,7 @@ class MainActivity : ComponentActivity() {
     companion object {
         private const val CHANNEL_ID = "my_notification_channel"
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -54,6 +56,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             var isDateTimeSelected by remember { mutableStateOf(false) }
             var isReminderSet by remember { mutableStateOf(false) }
+            var description by remember { mutableStateOf("") }
 
             val context = LocalContext.current
             val lifecycleOwner = LocalLifecycleOwner.current
@@ -76,7 +79,7 @@ class MainActivity : ComponentActivity() {
                 val formattedTime by remember {
                     derivedStateOf {
                         DateTimeFormatter
-                            .ofPattern("hh:mm a") //
+                            .ofPattern("hh:mm a")
                             .format(pickedTime)
                     }
                 }
@@ -85,7 +88,7 @@ class MainActivity : ComponentActivity() {
                 val timeDialogState = rememberMaterialDialogState()
                 val reminderDialogState = rememberMaterialDialogState()
 
-                val alarms = remember { mutableStateListOf<String>() }// List to store alarm times
+                val alarms = remember { mutableStateListOf<String>() } // List to store alarm times
                 val alarmTime = remember { mutableStateListOf<LocalDateTime>() }
 
                 Box(
@@ -190,7 +193,7 @@ class MainActivity : ComponentActivity() {
 
                             // Start countdown timer for the reminder
                             lifecycle.coroutineScope.launch {
-                                startCountdown(context, alarmDateTime)
+                                startCountdown(context, alarmDateTime, description)
                             }
                         }
 
@@ -200,8 +203,13 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) {
-                    // Add content for reminder dialog here
-                    Text(text = "Set reminder content")
+                    Column {
+                        TextField(
+                            value = description,
+                            onValueChange = { description = it },
+                            label = { Text("Enter description") }
+                        )
+                    }
                 }
 
                 //Alarm cards
@@ -210,7 +218,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun startCountdown(context: Context, alarmTime: LocalDateTime) {
+    private fun startCountdown(context: Context, alarmTime: LocalDateTime, description: String) {
         val currentDateTime = LocalDateTime.now()
         val delayMillis = calculateDelayMillis(currentDateTime, alarmTime)
 
@@ -218,7 +226,7 @@ class MainActivity : ComponentActivity() {
         lifecycle.coroutineScope.launch {
             delay(delayMillis)
             // Trigger second notification after countdown
-            createSecondNotification(context)
+            createSecondNotification(context, description)
         }
     }
 
@@ -240,7 +248,7 @@ class MainActivity : ComponentActivity() {
             .build()
         notificationManager.notify(notificationId, notification)
     }
-    private fun createSecondNotification(context: Context) {
+    private fun createSecondNotification(context: Context, description: String) {
         // Create and send the second notification
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -248,7 +256,7 @@ class MainActivity : ComponentActivity() {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.notification_icon)
             .setContentTitle("Timed reminder")
-            .setContentText("Your timed reminder is here.")
+            .setContentText("Your timed reminder is here: $description.")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
         notificationManager.notify(notificationId, notification)
