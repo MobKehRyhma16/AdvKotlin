@@ -14,25 +14,37 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.Card
+import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.core.app.NotificationCompat
+import androidx.lifecycle.coroutineScope
 import com.example.composedatetimepicker.ui.theme.ComposeDateTimePickerTheme
 import com.vanpra.composematerialdialogs.MaterialDialog
 import com.vanpra.composematerialdialogs.datetime.date.datepicker
 import com.vanpra.composematerialdialogs.datetime.time.timepicker
 import com.vanpra.composematerialdialogs.rememberMaterialDialogState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
 
 class MainActivity : ComponentActivity() {
 
+    companion object {
+        private const val CHANNEL_ID = "my_notification_channel"
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -42,6 +54,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             var isDateTimeSelected by remember { mutableStateOf(false) }
             var isReminderSet by remember { mutableStateOf(false) }
+
+            val context = LocalContext.current
+            val lifecycleOwner = LocalLifecycleOwner.current
+            val lifecycle = lifecycleOwner.lifecycle
 
             ComposeDateTimePickerTheme {
                 var pickedDate by remember {
@@ -69,7 +85,8 @@ class MainActivity : ComponentActivity() {
                 val timeDialogState = rememberMaterialDialogState()
                 val reminderDialogState = rememberMaterialDialogState()
 
-                val alarms = remember { mutableStateListOf<String>() } // List to store alarms
+                val alarms = remember { mutableStateListOf<String>() }// List to store alarm times
+                val alarmTime = remember { mutableStateListOf<LocalDateTime>() }
 
                 Box(
                     modifier = Modifier
@@ -101,7 +118,7 @@ class MainActivity : ComponentActivity() {
                             onClick = {
                                 reminderDialogState.show()
                             },
-                            shape = CircleShape,
+                            shape = MaterialTheme.shapes.medium,
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
                                 .padding(16.dp)
@@ -159,20 +176,22 @@ class MainActivity : ComponentActivity() {
                     buttons = {
                         positiveButton(text = "Set Reminder") {
                             isReminderSet = true
-                            val newAlarm = "$formattedDate at $formattedTime" // Create new alarm string
+                            val newAlarm =
+                                "$formattedDate at $formattedTime" // Create new alarm string
+                            val alarmDateTime = LocalDateTime.of(
+                                pickedDate,
+                                pickedTime
+                            ) // Combine date and time into LocalDateTime
                             alarms.add(newAlarm) // Add alarm to the list
+                            alarmTime.add(alarmDateTime)
                             isDateTimeSelected = false // Reset flag
 
-                            // Create and send the notification
-                            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                            val notificationId = 1 // Unique ID for the notification
-                            val notification = NotificationCompat.Builder(this@MainActivity, CHANNEL_ID)
-                                .setSmallIcon(R.drawable.notification_icon)
-                                .setContentTitle("Reminder Set")
-                                .setContentText("You have set a reminder for $newAlarm")
-                                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                                .build()
-                            notificationManager.notify(notificationId, notification)
+                            createNotification(context, newAlarm)
+
+                            // Start countdown timer for the reminder
+                            lifecycle.coroutineScope.launch {
+                                startCountdown(context, alarmDateTime)
+                            }
                         }
 
                         negativeButton(text = "Cancel") {
@@ -191,6 +210,50 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun startCountdown(context: Context, alarmTime: LocalDateTime) {
+        val currentDateTime = LocalDateTime.now()
+        val delayMillis = calculateDelayMillis(currentDateTime, alarmTime)
+
+        // Launch a coroutine to delay execution
+        lifecycle.coroutineScope.launch {
+            delay(delayMillis)
+            // Trigger second notification after countdown
+            createSecondNotification(context)
+        }
+    }
+
+    private fun calculateDelayMillis(currentDateTime: LocalDateTime, alarmTime: LocalDateTime): Long {
+        val currentMillis = currentDateTime.toInstant().toEpochMilli()
+        val alarmMillis = alarmTime.toInstant().toEpochMilli()
+        return alarmMillis - currentMillis
+    }
+    private fun createNotification(context: Context, newAlarm : String) {
+        // Create and send the second notification
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationId = 2 // Unique ID for the notification
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.notification_icon)
+            .setContentTitle("Your reminder has been created")
+            .setContentText("You have set a reminder for $newAlarm.")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        notificationManager.notify(notificationId, notification)
+    }
+    private fun createSecondNotification(context: Context) {
+        // Create and send the second notification
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notificationId = 2 // Unique ID for the notification
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(R.drawable.notification_icon)
+            .setContentTitle("Timed reminder")
+            .setContentText("Your timed reminder is here.")
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        notificationManager.notify(notificationId, notification)
+    }
+
     private fun createNotificationChannel() {
         // Check if the device is running Android 8.0 or higher
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -203,12 +266,15 @@ class MainActivity : ComponentActivity() {
             }
 
             // Register the channel with the system
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
     }
+}
 
-    companion object {
-        private const val CHANNEL_ID = "my_notification_channel"
-    }
+fun LocalDateTime.toInstant(): Instant {
+    val zoneId = ZoneId.systemDefault() // You can change the zone ID as needed
+    val zonedDateTime = this.atZone(zoneId)
+    return zonedDateTime.toInstant()
 }
