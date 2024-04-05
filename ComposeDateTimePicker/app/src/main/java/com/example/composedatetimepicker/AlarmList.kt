@@ -12,7 +12,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
-
 @Composable
 fun AlarmList(alarms: List<String>) {
     Column(
@@ -44,4 +43,5 @@ fun AlarmList(alarms: List<String>) {
 fun AlarmListPreview() {
     val alarms = listOf("Alarm 1", "Alarm 2", "Alarm 3") // Sample list of alarms
     AlarmList(alarms = alarms)
+
 }

@@ -5,6 +5,8 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.os.Message
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -123,6 +125,7 @@ class MainActivity : ComponentActivity() {
                             Text(text = "Set a reminder")
                         }
                     }
+                    // AlarmList(alarms = alarms.toMutableList())
                 }
 
                 MaterialDialog(
@@ -181,8 +184,8 @@ class MainActivity : ComponentActivity() {
                             ) // Combine date and time into LocalDateTime
                             alarms.add(newAlarm) // Add alarm to the list
                             alarmTime.add(alarmDateTime)
+                            Toast.makeText(context, "Alarm set for $formattedDate at $formattedTime", Toast.LENGTH_SHORT).show()
                             isDateTimeSelected = false // Reset flag
-
                             createNotification(context, newAlarm)
 
                             // Start countdown timer for the reminder
@@ -192,7 +195,8 @@ class MainActivity : ComponentActivity() {
                                     alarmTime,
                                     alarms.toMutableList(),
                                     formattedDate,
-                                    formattedTime
+                                    formattedTime,
+                                    description
                                 )
                             }
                         }
@@ -223,7 +227,8 @@ class MainActivity : ComponentActivity() {
         alarmTime: MutableList<LocalDateTime>,
         alarms: MutableList<String>,
         formattedDate: String,
-        formattedTime: String
+        formattedTime: String,
+        description: String
     ) {
         val currentDateTime = LocalDateTime.now()
         val delayMillis = calculateDelayMillis(currentDateTime, alarmTime[0])
@@ -235,6 +240,7 @@ class MainActivity : ComponentActivity() {
 
             val currentDateTimeAfterDelay = LocalDateTime.now()
             println("Current Time After Delay: $currentDateTimeAfterDelay")
+            println("Alarms list size: ${alarms.size}") // Log the list size here
             if (currentDateTimeAfterDelay.isAfter(alarmTime[0]) && alarms.contains("$formattedDate at $formattedTime")) {
                 // Alarm time has passed and still exists in the list, remove it.
                 val index = alarms.indexOfFirst { it.contains("$formattedDate at $formattedTime") }
@@ -245,17 +251,7 @@ class MainActivity : ComponentActivity() {
                 }
                 return@launch // Exit coroutine if alarm passed
             }
-
-            // Find the matching alarm in the list (only needed if alarm hasn't passed)
-            val index = alarms.indexOfFirst { it.contains("$formattedDate at $formattedTime") }
-
-            // Remove the alarm and time if found (only needed if alarm hasn't passed)
-            if (index != -1) {
-                alarms.removeAt(index)
-                alarmTime.removeAt(index)
-            }
-
-            createSecondNotification(context)
+            createSecondNotification(context, description)
         }
     }
 
