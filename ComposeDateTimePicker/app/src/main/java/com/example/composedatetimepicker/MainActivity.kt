@@ -7,19 +7,13 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.RequiresApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
-import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -190,7 +184,13 @@ class MainActivity : ComponentActivity() {
 
                             // Start countdown timer for the reminder
                             lifecycle.coroutineScope.launch {
-                                startCountdown(context, alarmDateTime)
+                                startCountdown(
+                                    context,
+                                    alarmTime,
+                                    alarms.toMutableList(),
+                                    formattedDate,
+                                    formattedTime
+                                )
                             }
                         }
 
@@ -210,14 +210,43 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun startCountdown(context: Context, alarmTime: LocalDateTime) {
+    private fun startCountdown(
+        context: Context,
+        alarmTime: MutableList<LocalDateTime>,
+        alarms: MutableList<String>,
+        formattedDate: String,
+        formattedTime: String
+    ) {
         val currentDateTime = LocalDateTime.now()
-        val delayMillis = calculateDelayMillis(currentDateTime, alarmTime)
+        val delayMillis = calculateDelayMillis(currentDateTime, alarmTime[0])
+        println("Current Time: $currentDateTime")
+        println("Delay (millis): $delayMillis")
 
-        // Launch a coroutine to delay execution
         lifecycle.coroutineScope.launch {
             delay(delayMillis)
-            // Trigger second notification after countdown
+
+            val currentDateTimeAfterDelay = LocalDateTime.now()
+            println("Current Time After Delay: $currentDateTimeAfterDelay")
+            if (currentDateTimeAfterDelay.isAfter(alarmTime[0]) && alarms.contains("$formattedDate at $formattedTime")) {
+                // Alarm time has passed and still exists in the list, remove it.
+                val index = alarms.indexOfFirst { it.contains("$formattedDate at $formattedTime") }
+                if (index != -1) {
+                    alarms.removeAt(index)
+                    alarmTime.removeAt(index)
+                    println("Alarm removed at index: $index, Alarms size: ${alarms.size}")
+                }
+                return@launch // Exit coroutine if alarm passed
+            }
+
+            // Find the matching alarm in the list (only needed if alarm hasn't passed)
+            val index = alarms.indexOfFirst { it.contains("$formattedDate at $formattedTime") }
+
+            // Remove the alarm and time if found (only needed if alarm hasn't passed)
+            if (index != -1) {
+                alarms.removeAt(index)
+                alarmTime.removeAt(index)
+            }
+
             createSecondNotification(context)
         }
     }
