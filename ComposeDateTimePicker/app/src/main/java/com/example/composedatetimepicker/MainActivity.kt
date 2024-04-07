@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.os.Message
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -148,7 +149,41 @@ class MainActivity : ComponentActivity() {
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)
                 ) {
-                    Text(text = "Set a reminder")
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Button(onClick = {
+                            dateDialogState.show()
+                        }) {
+                            Text(text = "Pick date")
+                        }
+                        Text(text = formattedDate)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = {
+                            timeDialogState.show()
+                        }) {
+                            Text(text = "Pick time")
+                        }
+                        Text(text = formattedTime)
+                    }
+
+                    if (isDateTimeSelected) {
+                        Button(
+                            onClick = {
+                                reminderDialogState.show()
+                            },
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(16.dp)
+                        ) {
+                            Text(text = "Set a reminder")
+                        }
+                    }
+                    // AlarmList(alarms = alarms.toMutableList())
+
                 }
             }
         }
@@ -216,6 +251,7 @@ class MainActivity : ComponentActivity() {
                     lifecycle.coroutineScope.launch {
                         startCountdown(context, alarmDateTime, description)
                         Toast.makeText(context, "Alarm set for $formattedDate at $formattedTime", Toast.LENGTH_SHORT).show()
+
                     }
                 }
 

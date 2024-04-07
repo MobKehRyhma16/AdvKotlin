@@ -44,3 +44,4 @@ fun AlarmListPreview() {
     val alarms = listOf("Alarm 1", "Alarm 2", "Alarm 3") // Sample list of alarms
     AlarmList(alarms = alarms)
 }
+
