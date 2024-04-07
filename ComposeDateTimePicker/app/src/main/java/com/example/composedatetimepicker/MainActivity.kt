@@ -5,6 +5,8 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.os.Message
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -146,7 +148,41 @@ class MainActivity : ComponentActivity() {
                         .align(Alignment.BottomEnd)
                         .padding(16.dp)
                 ) {
-                    Text(text = "Set a reminder")
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Button(onClick = {
+                            dateDialogState.show()
+                        }) {
+                            Text(text = "Pick date")
+                        }
+                        Text(text = formattedDate)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = {
+                            timeDialogState.show()
+                        }) {
+                            Text(text = "Pick time")
+                        }
+                        Text(text = formattedTime)
+                    }
+
+                    if (isDateTimeSelected) {
+                        Button(
+                            onClick = {
+                                reminderDialogState.show()
+                            },
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(16.dp)
+                        ) {
+                            Text(text = "Set a reminder")
+                        }
+                    }
+                    // AlarmList(alarms = alarms.toMutableList())
+
                 }
             }
         }
@@ -194,25 +230,48 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        MaterialDialog(
-            dialogState = reminderDialogState,
-            buttons = {
-                positiveButton(text = "Set Reminder") {
-                    isReminderSet = true
-                    val newAlarm =
-                        "$formattedDate at $formattedTime" // Create new alarm string
-                    val alarmDateTime = LocalDateTime.of(
-                        pickedDate,
-                        pickedTime
-                    ) // Combine date and time into LocalDateTime
-                    alarms.add(newAlarm) // Add alarm to the list
-                    isDateTimeSelected = false // Reset flag
+                MaterialDialog(
+                    dialogState = reminderDialogState,
+                    buttons = {
+                        positiveButton(text = "Set Reminder") {
+                            isReminderSet = true
+                            val newAlarm =
+                                "$formattedDate at $formattedTime" // Create new alarm string
+                            val alarmDateTime = LocalDateTime.of(
+                                pickedDate,
+                                pickedTime
+                            ) // Combine date and time into LocalDateTime
+                            alarms.add(newAlarm) // Add alarm to the list
+                            alarmTime.add(alarmDateTime)
+                            Toast.makeText(context, "Alarm set for $formattedDate at $formattedTime", Toast.LENGTH_SHORT).show()
+                            isDateTimeSelected = false // Reset flag
+                            createNotification(context, newAlarm)
 
-                    createNotification(context, newAlarm)
+                            // Start countdown timer for the reminder
+                            lifecycle.coroutineScope.launch {
+                                startCountdown(
+                                    context,
+                                    alarmTime,
+                                    alarms.toMutableList(),
+                                    formattedDate,
+                                    formattedTime,
+                                    description
+                                )
+                            }
+                        }
 
-                    // Start countdown timer for the reminder
-                    lifecycle.coroutineScope.launch {
-                        startCountdown(context, alarmDateTime, description)
+                        negativeButton(text = "Cancel") {
+                            isReminderSet = false
+                            isDateTimeSelected = false // Reset flag
+                        }
+                    }
+                ) {
+                    Column {
+                        TextField(
+                            value = description,
+                            onValueChange = { description = it },
+                            label = { Text("Enter description") }
+                        )
                     }
                 }
 
