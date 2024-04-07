@@ -142,6 +142,7 @@ class MainActivity : ComponentActivity() {
                 Button(
                     onClick = {
                         reminderDialogState.show()
+
                     },
                     shape = MaterialTheme.shapes.medium,
                     modifier = Modifier
@@ -230,48 +231,27 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-                MaterialDialog(
-                    dialogState = reminderDialogState,
-                    buttons = {
-                        positiveButton(text = "Set Reminder") {
-                            isReminderSet = true
-                            val newAlarm =
-                                "$formattedDate at $formattedTime" // Create new alarm string
-                            val alarmDateTime = LocalDateTime.of(
-                                pickedDate,
-                                pickedTime
-                            ) // Combine date and time into LocalDateTime
-                            alarms.add(newAlarm) // Add alarm to the list
-                            alarmTime.add(alarmDateTime)
-                            Toast.makeText(context, "Alarm set for $formattedDate at $formattedTime", Toast.LENGTH_SHORT).show()
-                            isDateTimeSelected = false // Reset flag
-                            createNotification(context, newAlarm)
+        MaterialDialog(
+            dialogState = reminderDialogState,
+            buttons = {
+                positiveButton(text = "Set Reminder") {
+                    isReminderSet = true
+                    val newAlarm =
+                        "$formattedDate at $formattedTime" // Create new alarm string
+                    val alarmDateTime = LocalDateTime.of(
+                        pickedDate,
+                        pickedTime
+                    ) // Combine date and time into LocalDateTime
+                    alarms.add(newAlarm) // Add alarm to the list
+                    isDateTimeSelected = false // Reset flag
 
-                            // Start countdown timer for the reminder
-                            lifecycle.coroutineScope.launch {
-                                startCountdown(
-                                    context,
-                                    alarmTime,
-                                    alarms.toMutableList(),
-                                    formattedDate,
-                                    formattedTime,
-                                    description
-                                )
-                            }
-                        }
+                    createNotification(context, newAlarm)
 
-                        negativeButton(text = "Cancel") {
-                            isReminderSet = false
-                            isDateTimeSelected = false // Reset flag
-                        }
-                    }
-                ) {
-                    Column {
-                        TextField(
-                            value = description,
-                            onValueChange = { description = it },
-                            label = { Text("Enter description") }
-                        )
+                    // Start countdown timer for the reminder
+                    lifecycle.coroutineScope.launch {
+                        startCountdown(context, alarmDateTime, description)
+                        Toast.makeText(context, "Alarm set for $formattedDate at $formattedTime", Toast.LENGTH_SHORT).show()
+
                     }
                 }
 
