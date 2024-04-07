@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -140,6 +141,7 @@ class MainActivity : ComponentActivity() {
                 Button(
                     onClick = {
                         reminderDialogState.show()
+
                     },
                     shape = MaterialTheme.shapes.medium,
                     modifier = Modifier
@@ -213,6 +215,7 @@ class MainActivity : ComponentActivity() {
                     // Start countdown timer for the reminder
                     lifecycle.coroutineScope.launch {
                         startCountdown(context, alarmDateTime, description)
+                        Toast.makeText(context, "Alarm set for $formattedDate at $formattedTime", Toast.LENGTH_SHORT).show()
                     }
                 }
 
