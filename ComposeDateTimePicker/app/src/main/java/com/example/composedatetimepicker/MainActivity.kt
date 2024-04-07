@@ -5,22 +5,18 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import android.os.Message
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.RequiresApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
-import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -129,6 +125,7 @@ class MainActivity : ComponentActivity() {
                             Text(text = "Set a reminder")
                         }
                     }
+                    // AlarmList(alarms = alarms.toMutableList())
                 }
 
                 MaterialDialog(
@@ -187,13 +184,20 @@ class MainActivity : ComponentActivity() {
                             ) // Combine date and time into LocalDateTime
                             alarms.add(newAlarm) // Add alarm to the list
                             alarmTime.add(alarmDateTime)
+                            Toast.makeText(context, "Alarm set for $formattedDate at $formattedTime", Toast.LENGTH_SHORT).show()
                             isDateTimeSelected = false // Reset flag
-
                             createNotification(context, newAlarm)
 
                             // Start countdown timer for the reminder
                             lifecycle.coroutineScope.launch {
-                                startCountdown(context, alarmDateTime, description)
+                                startCountdown(
+                                    context,
+                                    alarmTime,
+                                    alarms.toMutableList(),
+                                    formattedDate,
+                                    formattedTime,
+                                    description
+                                )
                             }
                         }
 
@@ -218,14 +222,35 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun startCountdown(context: Context, alarmTime: LocalDateTime, description: String) {
+    private fun startCountdown(
+        context: Context,
+        alarmTime: MutableList<LocalDateTime>,
+        alarms: MutableList<String>,
+        formattedDate: String,
+        formattedTime: String,
+        description: String
+    ) {
         val currentDateTime = LocalDateTime.now()
-        val delayMillis = calculateDelayMillis(currentDateTime, alarmTime)
+        val delayMillis = calculateDelayMillis(currentDateTime, alarmTime[0])
+        println("Current Time: $currentDateTime")
+        println("Delay (millis): $delayMillis")
 
-        // Launch a coroutine to delay execution
         lifecycle.coroutineScope.launch {
             delay(delayMillis)
-            // Trigger second notification after countdown
+
+            val currentDateTimeAfterDelay = LocalDateTime.now()
+            println("Current Time After Delay: $currentDateTimeAfterDelay")
+            println("Alarms list size: ${alarms.size}") // Log the list size here
+            if (currentDateTimeAfterDelay.isAfter(alarmTime[0]) && alarms.contains("$formattedDate at $formattedTime")) {
+                // Alarm time has passed and still exists in the list, remove it.
+                val index = alarms.indexOfFirst { it.contains("$formattedDate at $formattedTime") }
+                if (index != -1) {
+                    alarms.removeAt(index)
+                    alarmTime.removeAt(index)
+                    println("Alarm removed at index: $index, Alarms size: ${alarms.size}")
+                }
+                return@launch // Exit coroutine if alarm passed
+            }
             createSecondNotification(context, description)
         }
     }

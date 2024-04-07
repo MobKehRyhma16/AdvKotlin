@@ -7,14 +7,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Card
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-
 
 @Composable
 fun AlarmList(alarms: List<String>) {
@@ -47,4 +43,5 @@ fun AlarmList(alarms: List<String>) {
 fun AlarmListPreview() {
     val alarms = listOf("Alarm 1", "Alarm 2", "Alarm 3") // Sample list of alarms
     AlarmList(alarms = alarms)
+
 }
